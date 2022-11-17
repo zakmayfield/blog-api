@@ -8,11 +8,11 @@ const getComments = async (req, res) => {
     .join('posts', 'posts.id', 'comments.post_id')
     .join('users', 'users.id', 'comments.user_id')
     .select(
-      'posts.id as post_id',
       'comments.id',
-      'users.username as author',
+      'users.username',
       'comments.body as comment',
-      'comments.createdAt as date'
+      'comments.createdAt as date',
+      'posts.id as post_id',
     )
     .where('post_id', postId)
     // sort by new
@@ -23,16 +23,33 @@ const getComments = async (req, res) => {
 
 // takes post id in req.params
 const createComment = async (req, res) => {
+  const userId = req.user.id;
   const { postId } = req.params;
-  const user_id = 2;
   const body = req.body;
-  const payload = {
-    user_id,
-    post_id: postId,
-    ...body,
-  };
 
-  await db('comments').insert(payload);
+  if (!body.body) {
+    res.status(400).json({
+      error: `🚫 Comments require a body`,
+    });
+    throw new Error(`🚫 Comments require a body`);
+  }
+
+  const post = await db('posts').where('id', postId).first();
+
+  if (post) {
+    const payload = {
+      user_id: userId,
+      post_id: postId,
+      ...body,
+    };
+
+    await db('comments').insert(payload);
+  } else {
+    res.status(400).json({
+      error: `🚫 Cannot find post`,
+    });
+    throw new Error(`🚫 Cannot find post`);
+  }
 
   res.status(200).json(body);
 };

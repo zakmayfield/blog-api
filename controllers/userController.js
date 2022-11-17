@@ -6,12 +6,38 @@ const bcrypt = require('bcryptjs');
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
+
+// authenticated : auth
 const getUsers = async (req, res) => {
   let users = await db('users');
   res.status(200).json(users);
 };
 
-const loginUser = async (req, res) => {};
+const loginUser = async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    res.status(400).json({
+      error: `🚫 Please include all fields`,
+    });
+    throw new Error(`🚫 Please include all fields`);
+  }
+
+  let user = await db('users').where('username', username).first();
+
+  if (user && (await bcrypt.compare(password, user.password))) {
+    res.status(201).json({
+      username: user.username,
+      email: user.email,
+      token: generateToken(user.id),
+    });
+  } else {
+    res.status(400).json({
+      error: `🚫 Invalid Credentials`,
+    });
+    throw new Error(`🚫 Invalid Credentials`);
+  }
+};
 
 const createUser = async (req, res) => {
   const { username, email, password } = req.body;
@@ -59,10 +85,6 @@ const createUser = async (req, res) => {
     email: user.email,
     token: generateToken(createdUser.id),
   });
-
-  // let payload = req.body;
-  // await db('users').insert(payload);
-  // res.status(200).json(payload);
 };
 
 const updateUser = async (req, res) => {
@@ -89,4 +111,5 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  loginUser,
 };

@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "up": "knex migrate:latest",
     "down": "knex migrate:rollback",
-    "pgql": "postgraphile -c postgres://localhost:5432/relational-1"
+    "pgql": "postgraphile -c postgres://localhost:5432/blog"
   },
   "author": "",
   "license": "ISC",
