@@ -9,6 +9,7 @@ exports.up = function (knex) {
 
       user.string('username').notNullable().unique();
       user.string('email').notNullable().unique();
+      user.string('password').notNullable();
     })
     .createTable('posts', (post) => {
       post.increments('id').primary();

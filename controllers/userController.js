@@ -1,14 +1,68 @@
+require('dotenv').config();
 const db = require('../db/dbConfig');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+const generateToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
 const getUsers = async (req, res) => {
   let users = await db('users');
   res.status(200).json(users);
 };
 
+const loginUser = async (req, res) => {};
+
 const createUser = async (req, res) => {
-  let payload = req.body;
-  await db('users').insert(payload);
-  res.status(200).json(payload);
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    res.status(400).json({
+      error: `🚫 Please include all fields`,
+    });
+    throw new Error(`🚫 Please include all fields`);
+  }
+
+  let usernameExists = await db('users').where('username', username).first();
+  let emailExists = await db('users').where('email', email).first();
+
+  if (usernameExists) {
+    res.status(400).json({
+      error: `🚫 Username is not available`,
+    });
+    throw new Error(`🚫 Username is not available`);
+  }
+
+  if (emailExists) {
+    res.status(400).json({
+      error: `🚫 Email is not available`,
+    });
+    throw new Error(`🚫 Email is not available`);
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  const user = {
+    username,
+    email,
+    password: hashedPassword,
+  };
+
+  await db('users').insert(user);
+  const createdUser = await db('users')
+    .where('username', user.username)
+    .first();
+
+  res.status(201).json({
+    username: user.username,
+    email: user.email,
+    token: generateToken(createdUser.id),
+  });
+
+  // let payload = req.body;
+  // await db('users').insert(payload);
+  // res.status(200).json(payload);
 };
 
 const updateUser = async (req, res) => {
@@ -34,5 +88,5 @@ module.exports = {
   getUsers,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
 };
